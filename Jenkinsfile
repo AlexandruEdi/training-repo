@@ -1,21 +1,52 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "demo-jenkins-app"
+    }
+
     stages {
-        stage('Build') {
+
+        stage('Checkout') {
             steps {
-                echo 'Building the application'
+                git url: 'file:///home/edi/demo-jenkins'
             }
         }
-        stage("Test"){
-            steps{
-                echo "Running tests"
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm install'
             }
         }
-        stage("Deploy"){
-            steps{
-                echo("Deploying the application")
+
+        stage('Run Tests') {
+            steps {
+                sh 'npm test'
             }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t $IMAGE_NAME .'
+            }
+        }
+
+        stage('Run Container') {
+            steps {
+                sh '''
+                docker rm -f demo-container || true
+                docker run -d -p 3001:3000 --name demo-container $IMAGE_NAME
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline terminat cu succes!'
+        }
+        failure {
+            echo 'Pipeline a esuat!'
         }
     }
 }
